@@ -7,17 +7,14 @@ Création : 12 janv. 2010
 from django.conf import settings
 from django import template
 from django.utils.html import conditional_escape
-from django.template.defaultfilters import stringfilter,force_escape,linenumbers
+from django.template.defaultfilters import stringfilter,linenumbers
 from django.utils.safestring import mark_safe
 import re
 import os.path
-try:
-    from bs4 import BeautifulSoup, Comment
-except ImportError:
-    from BeautifulSoup import BeautifulSoup, Comment
+from bs4 import BeautifulSoup, Comment
 from django.utils.translation import ugettext as _
 import datetime
-from django.template import Variable, VariableDoesNotExist, Template
+from django.template import Variable, VariableDoesNotExist
 
 
 register = template.Library()
@@ -129,7 +126,7 @@ def sanitize(value, allowed_tags):
 
     try:
         soup = BeautifulSoup(value)
-    except Exception, e:
+    except Exception as e:
         return '<br><span class="warning">%s :<br>%s</span><br><pre class="sanitize">%s</pre>' % (str(e), _('You have a HTML syntax error, please, check you have quote href and src attributes, that is href="xxx" or src="yyy" and not href=xxx or src=yyy'), linenumbers(value, True) )
 
     for comment in soup.findAll(text=lambda text: isinstance(text, Comment)):

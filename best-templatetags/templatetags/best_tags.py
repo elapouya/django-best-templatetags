@@ -6,10 +6,10 @@ Création : 12 janv. 2010
 '''
 from django.conf import settings
 from django import template
-from django.utils import simplejson
+import json
 import re
 from bisect import bisect
-from django.template import Variable, VariableDoesNotExist, Template
+from django.template import Template
 
 
 register = template.Library()
@@ -111,6 +111,7 @@ class DebugVariable(template.Variable):
                             try: # method call (assuming no args required)
                                 current = current()
                             except:
+                                import traceback
                                 raise Exception("Template Object Method Error : %s" % traceback.format_exc())
                 except (TypeError, AttributeError):
                     try: # list-index lookup
@@ -121,12 +122,12 @@ class DebugVariable(template.Variable):
                             TypeError,  # unsubscriptable object
                             ):
                         raise template.VariableDoesNotExist("Failed lookup for key [%s] in %r", (bit, current)) # missing attribute
-                except Exception, e:
+                except Exception as e:
                     if getattr(e, 'silent_variable_failure', False):
                         current = settings.TEMPLATE_STRING_IF_INVALID
                     else:
                         raise
-            except Exception, e:
+            except Exception as e:
                 if getattr(e, 'silent_variable_failure', False):
                     current = settings.TEMPLATE_STRING_IF_INVALID
                 else:
@@ -184,7 +185,7 @@ class VariablesNode(template.Node):
 
     def render(self, context):
         source = self.nodelist.render(context)
-        context[self.var_name] = simplejson.loads(source)
+        context[self.var_name] = json.loads(source)
         return ''
 
 @register.tag(name='var')
@@ -204,33 +205,3 @@ def do_variables(parser, token):
     nodelist = parser.parse(('endvar',))
     parser.delete_first_token()
     return VariablesNode(nodelist, var_name)
-
-class ObjectDetailNode(template.Node):
-    def __init__(self, objvar, **kwargs):
-        self.objvar = template.Variable(objvar)
-        self.kwargs = kwargs
-        print 'obj =',objvar,' kwargs =',kwargs
-    def render(self, context):
-        obj = self.objvar.resolve(context)
-        return getattr(obj,self.kwargs['fields'][0])
-
-@register.tag(name='object_detail')
-def do_object_detail(parser, token):
-    try:
-        args = token.contents.split()
-        tag = args[0]
-        objvar = args[1]
-        params = args[2:]
-    except ValueError:
-        msg = '"%s" tag requires at least an object variable' % tag
-        raise template.TemplateSyntaxError(msg)
-    kwargs = {}
-    for p in params:
-        splitted = p.split('=')
-        if len(splitted) < 2:
-            kwargs['fields'] = splitted[0].split(',')
-        else:
-            kwargs[splitted[0]] = splitted[1].split(',')
-
-    return ObjectDetailNode(objvar, **kwargs)
-
