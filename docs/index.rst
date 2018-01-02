@@ -15,6 +15,9 @@ More to come...
 
 Please wait...
 
+.. automodule:: best_filters
+    :members:
+
 Indices and tables
 ==================
 

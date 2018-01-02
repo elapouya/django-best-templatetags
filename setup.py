@@ -36,7 +36,7 @@ def get_version(pkg):
 
 
 setup(name='django-best-templatetags',
-      version=get_version('best-templatetags'),
+      version=get_version('best_templatetags'),
       description='Best tags and filters for Django templates',
       long_description=long_description,
       classifiers=[

@@ -15,11 +15,16 @@
 import sys
 import os
 
+from django.conf import settings
+settings.configure(DEBUG=False)
+
+base_pkg = 'best_templatetags'
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #sys.path.insert(0, os.path.abspath('.'))
-#sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)),base_pkg,'templatetags'))
 
 # -- General configuration ------------------------------------------------
 
@@ -74,7 +79,7 @@ def get_version(pkg):
     raise RuntimeError("Unable to find __version__ string in %s." % path)
 
 # The full version, including alpha/beta/rc tags.
-release = get_version('best-templatetags')
+release = get_version(base_pkg)
 # The short X.Y version.
 version = '.'.join(release.split('.')[:2])
 
