@@ -13,6 +13,8 @@ Best tags and filters for Django templates
 
 More to come...
 
+Please wait...
+
 Indices and tables
 ==================
 
