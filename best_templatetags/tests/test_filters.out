@@ -1,0 +1,12 @@
+
+basename
+========
+
+With file_path = /a/b/c/myfile.extension
+{{ file_path|basename }} = myfile.extension
+
+nl2br
+=====
+
+With nl2br_text = 'hello\nworld'
+{{ nl2br_text|nl2br }} = <p>hello<br />world</p>

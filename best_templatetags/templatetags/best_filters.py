@@ -22,12 +22,18 @@ register = template.Library()
 @register.filter
 @stringfilter
 def basename(str):
-    return os.path.basename(str)
+    """give the basename of the path
 
-@register.filter
-@stringfilter
-def nl2br(str):
-    return str.replace('\n', '<br>')
+    It uses os.path.basename()
+
+    Example:
+        ::
+
+            With file_path = '/a/b/c/myfile.extension'
+
+            {{ file_path|basename }} will give 'myfile.extension'
+    """
+    return os.path.basename(str)
 
 @register.filter
 def format(val,arg):
