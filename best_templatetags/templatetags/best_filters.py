@@ -36,6 +36,42 @@ def basename(str):
     return os.path.basename(str)
 
 @register.filter
+@stringfilter
+def dirname(str):
+    """give the basename of the path
+
+    It uses os.path.basename()
+
+    Example:
+        ::
+
+            With file_path = '/a/b/c/myfile.extension'
+            {{ file_path|dirname }} will give '/a/b/c'
+    """
+    return os.path.dirname(str)
+
+@register.filter
+def multiply(val,arg):
+    """Multiply by a value
+
+    Example:
+        ::
+
+            With val = 50
+            {{ val|multiply:1024 }} will give 51200
+
+            With val = '*'
+            {{ val|multiply:5 }} will give '*****'
+    """
+    return val * arg
+
+@register.filter
+def divide(val,arg):
+    return val / arg
+
+
+
+@register.filter
 def format(val,arg):
     return val % arg
 
@@ -58,14 +94,6 @@ def resub(str,arg):
     flags = re.I if params[-1] == 'i' else 0
     regex = re.compile(pat,flags=flags)
     return regex.sub(rep,str)
-
-@register.filter
-def multiply(val,arg):
-    return val * arg
-
-@register.filter
-def divide(val,arg):
-    return val / arg
 
 @register.filter
 @stringfilter

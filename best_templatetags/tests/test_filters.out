@@ -5,8 +5,16 @@ basename
 With file_path = /a/b/c/myfile.extension
 {{ file_path|basename }} = myfile.extension
 
-nl2br
-=====
+dirname
+=======
 
-With nl2br_text = 'hello\nworld'
-{{ nl2br_text|nl2br }} = <p>hello<br />world</p>
+With file_path = /a/b/c/myfile.extension
+{{ file_path|dirname }} = /a/b/c
+
+multiply
+========
+With val50 = 50
+{{ val50|multiply:1024 }} = 51200
+
+With valstar = '*'
+{{ valstar|multiply:5 }} = *****
