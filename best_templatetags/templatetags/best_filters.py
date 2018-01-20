@@ -92,6 +92,23 @@ def divide(val,arg):
 @stringfilter
 @register.filter
 def replace(str,arg):
+    """Replace a substring
+
+    The replacement syntax is :
+    <chosen separator><string to replace><separator><replacement string>
+
+    Examples:
+
+        >>> c = {'mystr':'hello world'}
+        >>> t = '{% load best_filters %}{{ mystr|replace:"/world/eric" }}'
+        >>> Template(t).render(Context(c))
+        'hello eric'
+
+        >>> c = {'mypath':'/home/theuser/projects'}
+        >>> t = '{% load best_filters %}{{ mypath|replace:",/home,/Users" }}'
+        >>> Template(t).render(Context(c))
+        '/Users/theuser/projects'
+    """
     sep=arg[0]
     params = arg.split(sep)
     pat = params[1]
@@ -101,6 +118,23 @@ def replace(str,arg):
 @stringfilter
 @register.filter
 def resub(str,arg):
+    r"""regex substitute a substring
+
+    The substitution syntax is :
+    <chosen separator><regex pattern to search><separator><replacement string>
+
+    Examples:
+
+        >>> c = {'mystr':'hello world'}
+        >>> t = '{% load best_filters %}{{ mystr|resub:"/ .*/ eric" }}'
+        >>> Template(t).render(Context(c))
+        'hello eric'
+
+        >>> c = {'mypath':'/home/theuser/projects'}
+        >>> t = r'{% load best_filters %}{{ mypath|resub:",/home/([^/]*)/projects,login=\1" }}'
+        >>> Template(t).render(Context(c))
+        'login=theuser'
+    """
     sep=arg[0]
     params = arg.split(sep)
     pat = params[1]
@@ -110,31 +144,42 @@ def resub(str,arg):
     return regex.sub(rep,str)
 
 @register.filter
-@stringfilter
-def truncate(str,arg):
-    if len(str) > arg:
-        return str[:arg] + "..."
-    else:
-        return str
-
-@register.filter
-@stringfilter
-def nbsp(str, autoescape=True):
-    if autoescape:
-        esc = conditional_escape
-    else:
-        esc = lambda x: x
-    return mark_safe(esc(str).replace(' ', '&nbsp;'))
-nbsp.needs_autoescape = True
-
-@register.filter
 def age(bday, d=None):
+    """give the age in year
+
+    Example:
+
+        >>> c = {'user_birthdate':datetime(2006,11,9)}
+        >>> t = '{% load best_filters %}{{ user_birthdate|age }} years old'
+        >>> Template(t).render(Context(c))
+        '11 years old'
+
+    """
     if d is None:
         d = datetime.date.today()
     return (d.year - bday.year) - int((d.month, d.day) < (bday.month, bday.day))
 
+@stringfilter
 @register.filter
-def deltaday_human_simple(t1, t2=None):
+def truncat(str, pattern):
+    r"""truncate the string at the specified pattern
+
+    Useful with filters timesince and timeuntil
+    pattern is a regex expression string
+    Do not forget to escape the dot (\.) if it the char you want to search
+
+    Example:
+
+        >>> c = {'str':'abc...xyz'}
+        >>> t = '{% load best_filters %}{{ str|truncat:"\." }}'
+        >>> Template(t).render(Context(c))
+        'abc'
+
+    """
+    return re.sub(pattern+'.*', '', str)
+
+@register.filter
+def timesince_simple(t1, t2=None):
     if t2 is None:
         t2 = datetime.datetime.now()
     d = t2 - t1
