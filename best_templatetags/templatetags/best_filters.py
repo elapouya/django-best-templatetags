@@ -27,11 +27,12 @@ def basename(str):
     It uses os.path.basename()
 
     Example:
-        ::
 
-            With file_path = '/a/b/c/myfile.extension'
+        >>> c = {'mypath':'/a/b/c/myfile.extension'}
+        >>> t = '{% load best_filters %}{{ mypath|basename }}'
+        >>> Template(t).render(Context(c))
+        'myfile.extension'
 
-            {{ file_path|basename }} will give 'myfile.extension'
     """
     return os.path.basename(str)
 
@@ -40,13 +41,15 @@ def basename(str):
 def dirname(str):
     """give the basename of the path
 
-    It uses os.path.basename()
+    It uses os.path.dirname()
 
     Example:
-        ::
 
-            With file_path = '/a/b/c/myfile.extension'
-            {{ file_path|dirname }} will give '/a/b/c'
+        >>> c = {'mypath':'/a/b/c/myfile.extension'}
+        >>> t = '{% load best_filters %}{{ mypath|dirname }}'
+        >>> Template(t).render(Context(c))
+        '/a/b/c'
+
     """
     return os.path.dirname(str)
 
@@ -54,26 +57,37 @@ def dirname(str):
 def multiply(val,arg):
     """Multiply by a value
 
-    Example:
-        ::
+    Examples:
 
-            With val = 50
-            {{ val|multiply:1024 }} will give 51200
+        >>> c = {'myval':50}
+        >>> t = '{% load best_filters %}{{ myval|multiply:1024 }}'
+        >>> Template(t).render(Context(c))
+        '51200'
 
-            With val = '*'
-            {{ val|multiply:5 }} will give '*****'
+        >>> c = {'mystr':'*'}
+        >>> t = '{% load best_filters %}{{ mystr|multiply:8 }}'
+        >>> Template(t).render(Context(c))
+        '********'
     """
     return val * arg
 
 @register.filter
 def divide(val,arg):
+    """Divide by a value
+
+    Examples:
+
+        >>> c = {'myval':50}
+        >>> t = '{% load best_filters %}{{ myval|divide:2|floatformat:0 }}'
+        >>> Template(t).render(Context(c))
+        '25'
+
+        >>> c = {'mystr':100}
+        >>> t = '{% load best_filters %}{{ mystr|divide:3|floatformat:2 }}'
+        >>> Template(t).render(Context(c))
+        '33.33'
+    """
     return val / arg
-
-
-
-@register.filter
-def format(val,arg):
-    return val % arg
 
 @stringfilter
 @register.filter
