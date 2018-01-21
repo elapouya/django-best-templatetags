@@ -175,52 +175,83 @@ def truncat(str, pattern):
         >>> Template(t).render(Context(c))
         'abc'
 
+        >>> c = {'t1':datetime(1789,7,14),'t2':datetime(2018,1,21)}
+        >>> t = '''{% load best_filters %}
+        ... timesince with 2 terms : {{ t1|timesince:t2 }}
+        ... timesince with 1 term : {{ t1|timesince:t2|truncat:"," }}'''
+        >>> print(Template(t).render(Context(c)))
+        <BLANKLINE>
+        timesince with 2 terms : 228 years, 6 months
+        timesince with 1 term : 228 years
     """
     return re.sub(pattern+'.*', '', str)
 
 @register.filter
-def timesince_simple(t1, t2=None):
-    if t2 is None:
-        t2 = datetime.datetime.now()
-    d = t2 - t1
-    days=d.days
-    if days:
-        if not days :
-            return _('today')
-        elif days < 7 :
-            return _('%d days') % days
-        elif days < 14 :
-            return _('one week')
-        elif days < 30 :
-            return _('%d weeks') % int(days / 7)
-        elif days < 60 :
-            return _('one month')
-        elif days < 365 :
-            return _('%d months') % int(days / 30)
-        elif days < 730 :
-            return _('one year')
-        else:
-            return _('%d years') % int(days / 365.25)
+def sanitizetags(value, allowed_tags=None):
+    """Remove all tags that is not in the allowed list
 
-sanitize_simple_html_tags = getattr(settings,'SANITIZE_SIMPLE_HTML_TAGS','a:href b u p i h1 h2 h3 hr img:src table tr td th code')
-
-@register.filter
-def sanitize_simple_html(value):
-    return sanitize(value, sanitize_simple_html_tags)
-
-@register.filter
-def sanitize(value, allowed_tags):
-    """Argument should be in form 'tag2:attr1:attr2 tag2:attr1 tag3', where tags
+    Argument should be in form 'tag1:attr1:attr2 tag2:attr1 tag3', where tags
     are allowed HTML tags, and attrs are the allowed attributes for that tag.
+    In the example above, it means accepted tags are :
+    <tag1 attr1="..." attr2="..."> and <tag2 attr1="..."> and <tag3>
+    All other HTML tags an attributes will be removed.
+    for example <tag2 attr1="..." attr3="..."> <tag4 ...>
+    will be replaced by just <tag2 attr1="...">
+    The filter also unconditionnaly removes attributes with attributes starting
+    with 'javascript:' to avoid maliciouscode.
+
+    If No argument is given, the filter will look for SANITIZETAGS_ALLOWED
+    in settings or will use this default value:
+    'a:href b u p i h1 h2 h3 hr img:src table tr td th code'
+
+    Notes:
+
+        * The output is marked as a safe string.
+        * If the HTML given has not a correct syntax, an error html message is
+          displayed instead of the original value.
+        * Only tags are sanitized, not the text in between
+
+    Examples:
+
+        >>> c = {'comment':'My comment <b>with</b> <a href="spam">ads</a>'}
+        >>> t = '{% load best_filters %}{{ comment|sanitizetags:"B u i"}}'
+        >>> Template(t).render(Context(c))
+        'My comment <b>with</b> ads'
+
+        >>> c = {'comment':
+        ... '<i>Go</i> <a badattrib="xx" href="google.com">here</a>'}
+        >>> t = '{% load best_filters %}{{ comment|sanitizetags:"a:href"}}'
+        >>> Template(t).render(Context(c))
+        'Go <a href="google.com">here</a>'
+
+        >>> c = {'comment':'<b><i><u>nested tags</u></i></u>'}
+        >>> t = '{% load best_filters %}{{ comment|sanitizetags:"b u"}}'
+        >>> Template(t).render(Context(c))
+        '<b><u>nested tags</u></b>'
+
     """
-    js_regex = re.compile(r'[\s]*(&#x.{1,7})?'.join(list('javascript')))
-    allowed_tags = [tag.split(':') for tag in allowed_tags.split()]
+    if allowed_tags==None:
+        allowed_tags = getattr(
+            settings,
+            'SANITIZETAGS_ALLOWED',
+            'a:href b u p i h1 h2 h3 hr img:src table tr td th code'
+        )
+    pattern = '\s*' + r'[\s]*(&#x.{1,7})?'.join(list('javascript:')) + '.*'
+    js_regex = re.compile(pattern)
+    allowed_tags = [tag.split(':') for tag in allowed_tags.lower().split()]
     allowed_tags = dict((tag[0], tag[1:]) for tag in allowed_tags)
 
     try:
-        soup = BeautifulSoup(value)
+        soup = BeautifulSoup(value, "html.parser")
     except Exception as e:
-        return '<br><span class="warning">%s :<br>%s</span><br><pre class="sanitize">%s</pre>' % (str(e), _('You have a HTML syntax error, please, check you have quote href and src attributes, that is href="xxx" or src="yyy" and not href=xxx or src=yyy'), linenumbers(value, True) )
+        return mark_safe(('<br><span class="warning">{} :<br>{}</span><br>'
+                '<pre class="sanitizetags">{}</pre>').format(
+                    str(e),
+                    _('You have a HTML syntax error, please, check you have '
+                      'quoted href and src attributes, that is '
+                      'href="xxx" or src="yyy" and not href=xxx or src=yyy'),
+                    linenumbers(value, True)
+                ))
 
     for comment in soup.findAll(text=lambda text: isinstance(text, Comment)):
         comment.extract()
@@ -229,10 +260,13 @@ def sanitize(value, allowed_tags):
         if tag.name not in allowed_tags:
             tag.hidden = True
         else:
-            tag.attrs = [(attr, js_regex.sub('', val)) for attr, val in tag.attrs
-                         if attr in allowed_tags[tag.name]]
+            tag.attrs = dict(
+                [(attr, val) for attr, val in tag.attrs.items()
+                    if attr in allowed_tags[tag.name]
+                        and not js_regex.match(val)]
+            )
 
-    return soup.renderContents().decode('utf8')
+    return mark_safe(soup.renderContents().decode('utf8'))
 
 @register.filter
 def hash(object, attr):

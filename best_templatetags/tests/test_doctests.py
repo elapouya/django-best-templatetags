@@ -17,5 +17,8 @@ def load_tests(*args, **kwargs):
     test_all_doctests = unittest.TestSuite()
     for m in DOCTEST_MODULES:
         mod = import_module(m)
-        test_all_doctests.addTest(doctest.DocTestSuite(mod,globs=globals()))
+        test_all_doctests.addTest(
+            doctest.DocTestSuite(mod,globs=globals())
+        )
     return test_all_doctests
+doctest.NORMALIZE_WHITESPACE
