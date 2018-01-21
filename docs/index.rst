@@ -39,18 +39,37 @@ To use the tags, add in your template::
 Filters
 -------
 
-.. automodule:: best_filters
-    :members:
+.. currentmodule:: best_filters
+.. autosummary::
+     :toctree: stubs
+     :nosignatures:
+
+     age
+     basename
+     dirname
+     divide
+     get_key
+     listsort
+     listsortreversed
+     multiply
+     replace
+     resub
+     sanitizetags
+     truncat
 
 Tags
 ----
 
-.. automodule:: best_tags
-    :members:
+.. currentmodule:: best_tags
+.. autosummary::
+     :toctree: stubs
+     :nosignatures:
 
+     render_template
+     update_url
 
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :ref:`modindex`

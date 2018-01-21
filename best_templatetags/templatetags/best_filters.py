@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-Création : 12 janv. 2010
+Creation : 12 janv. 2010
 
 @author: Eric Lapouyade
 '''
@@ -16,6 +16,8 @@ from django.utils.translation import ugettext as _
 import datetime
 from django.template import Variable, VariableDoesNotExist
 
+# to get all filters :
+# grep "def " best_filters.py | sed -e 's,^def ,,' -e 's,(.*,,' | sort
 
 register = template.Library()
 
@@ -39,7 +41,7 @@ def basename(str):
 @register.filter
 @stringfilter
 def dirname(str):
-    """give the basename of the path
+    """give the directory name of the path
 
     It uses os.path.dirname()
 
@@ -345,7 +347,7 @@ def listsort(lst,col=None):
 def listsortreversed(lst,col=None):
     r""" Sort a list or a list of lists/tuples in reversed order
 
-    Same as listsort except that is reverse the order
+    Same as :func:`listsort` except that is reverse the order
 
     Example :
 

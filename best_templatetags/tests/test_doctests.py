@@ -9,6 +9,7 @@ from best_templatetags.templatetags import best_filters
 
 DOCTEST_MODULES = (
     'best_templatetags.templatetags.best_filters',
+    'best_templatetags.templatetags.best_tags',
 )
 
 
