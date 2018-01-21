@@ -7,7 +7,7 @@ Création : 12 janv. 2010
 from django.conf import settings
 from django import template
 from django.utils.html import conditional_escape
-from django.template.defaultfilters import stringfilter,linenumbers
+from django.template.defaultfilters import stringfilter
 from django.utils.safestring import mark_safe
 import re
 import os.path
@@ -188,21 +188,24 @@ def truncat(str, pattern):
 
 @register.filter
 def sanitizetags(value, allowed_tags=None):
-    """Remove all tags that is not in the allowed list
+    r"""Remove all tags that is not in the allowed list
 
     Argument should be in form 'tag1:attr1:attr2 tag2:attr1 tag3', where tags
     are allowed HTML tags, and attrs are the allowed attributes for that tag.
+
     In the example above, it means accepted tags are :
     <tag1 attr1="..." attr2="..."> and <tag2 attr1="..."> and <tag3>
     All other HTML tags an attributes will be removed.
+
     for example <tag2 attr1="..." attr3="..."> <tag4 ...>
     will be replaced by just <tag2 attr1="...">
-    The filter also unconditionnaly removes attributes with attributes starting
-    with 'javascript:' to avoid maliciouscode.
+
+    The filter also unconditionnaly removes attributes having values starting
+    with 'javascript:' to avoid malicious code.
 
     If No argument is given, the filter will look for SANITIZETAGS_ALLOWED
     in settings or will use this default value:
-    'a:href b u p i h1 h2 h3 hr img:src table tr td th code'
+    'a:href:name b u p i h1 h2 h3 hr img:src table tr td th code'
 
     Notes:
 
@@ -212,6 +215,17 @@ def sanitizetags(value, allowed_tags=None):
         * Only tags are sanitized, not the text in between
 
     Examples:
+
+        >>> c = {'comment':'''<a href="x" name="y" id="z"></a> <b></b> <u></u>
+        ... <p></p> <i></i> <h1></h1> <h2></h2> <h3></h3> <hr>
+        ... <img src="x" id="y"> <table></table> <tr></tr> <td></td> <th></th>
+        ... <code></code> <unkown_tag></unknown_tag> <div></div>'''}
+        >>> t = '{% load best_filters %}{{ comment|sanitizetags}}'
+        >>> print(Template(t).render(Context(c))) #doctest: +NORMALIZE_WHITESPACE
+        <a href="x" name="y"></a> <b></b> <u></u>
+        <p></p> <i></i> <h1></h1> <h2></h2> <h3></h3> <hr/>
+        <img src="x"/> <table></table> <tr></tr> <td></td> <th></th>
+        <code></code>
 
         >>> c = {'comment':'My comment <b>with</b> <a href="spam">ads</a>'}
         >>> t = '{% load best_filters %}{{ comment|sanitizetags:"B u i"}}'
@@ -229,12 +243,17 @@ def sanitizetags(value, allowed_tags=None):
         >>> Template(t).render(Context(c))
         '<b><u>nested tags</u></b>'
 
+        >>> c = {'comment':'''<a href="javascript:hack_me();" name="iambad">
+        ... <a href="http://google.com" name="iamgood">'''}
+        >>> t = '{% load best_filters %}{{ comment|sanitizetags:"a:href:name"}}'
+        >>> Template(t).render(Context(c))
+        '<a name="iambad">\n<a href="http://google.com" name="iamgood"></a></a>'
     """
     if allowed_tags==None:
         allowed_tags = getattr(
             settings,
             'SANITIZETAGS_ALLOWED',
-            'a:href b u p i h1 h2 h3 hr img:src table tr td th code'
+            'a:href:name b u p i h1 h2 h3 hr img:src table tr td th code'
         )
     pattern = '\s*' + r'[\s]*(&#x.{1,7})?'.join(list('javascript:')) + '.*'
     js_regex = re.compile(pattern)
@@ -247,10 +266,9 @@ def sanitizetags(value, allowed_tags=None):
         return mark_safe(('<br><span class="warning">{} :<br>{}</span><br>'
                 '<pre class="sanitizetags">{}</pre>').format(
                     str(e),
-                    _('You have a HTML syntax error, please, check you have '
-                      'quoted href and src attributes, that is '
-                      'href="xxx" or src="yyy" and not href=xxx or src=yyy'),
-                    linenumbers(value, True)
+                    _('Unable to parse the HTML text you gave. '
+                      'Please, check your syntax'),
+                    value
                 ))
 
     for comment in soup.findAll(text=lambda text: isinstance(text, Comment)):
@@ -269,11 +287,16 @@ def sanitizetags(value, allowed_tags=None):
     return mark_safe(soup.renderContents().decode('utf8'))
 
 @register.filter
-def hash(object, attr):
-    """ permet d'utiliser la notation pointé avec une variable comme attribut :
-        permet de prendre un item d'un dict via une variable comme index.
-        Si l'index n'est pas connu, essaye avec 'default_index'.
-        Ex : {{ user|hash:my_var }}
+def get_key(object, attr):
+    """Give access to a dict value with a key contained in a var
+
+    Example :
+
+        >>> c = {'countries': {'FR':'France','US':'United States'},
+        ...      'country':'FR'}
+        >>> t = '{% load best_filters %}Country:{{ countries|get_key:country }}'
+        >>> Template(t).render(Context(c))
+        'Country:France'
     """
     pseudo_context = { 'object' : object }
     try:
@@ -286,7 +309,51 @@ def hash(object, attr):
     return value
 
 @register.filter
-def listsort(lst):
+def listsort(lst,col=None):
+    r""" Sort a list or a list of lists/tuples
+
+    If no argument is given, the list is sorted like python does by default.
+    If an argunment is given (int), the filter is expecting a
+    list of lists/tuples and will sort following the column 'col' order
+
+    Example :
+
+        >>> c = { 'lst': ['a','c','b'] }
+        >>> t = '''{% load best_filters %}
+        ... sorted : {% for i in lst|listsort %}{{i}}{% endfor %}'''
+        >>> Template(t).render(Context(c))
+        '\nsorted : abc'
+
+        >>> c = { 'lst': [('a',3),('c',1),('b',2)] }
+        >>> t = '''{% load best_filters %}
+        ... sorted : {% for i in lst|listsort:1 %}{{i|safe}}{% endfor %}'''
+        >>> Template(t).render(Context(c))
+        "\nsorted : ('c', 1)('b', 2)('a', 3)"
+    """
     if not lst:
         return []
+    if col and isinstance(col,int):
+        return sorted(lst,key=lambda c:c[col])
     return sorted(lst)
+
+@register.filter
+def listsortreversed(lst,col=None):
+    r""" Sort a list or a list of lists/tuples in reversed order
+
+    Same as listsort except that is reverse the order
+
+    Example :
+
+        >>> c = { 'lst': ['a','c','b'] }
+        >>> t = '''{% load best_filters %}
+        ... sorted : {% for i in lst|listsortreversed %}{{i}}{% endfor %}'''
+        >>> Template(t).render(Context(c))
+        '\nsorted : cba'
+
+        >>> c = { 'lst': [('a',3),('b',1),('c',2)] }
+        >>> t = '''{% load best_filters %}
+        ... sorted : {% for i in lst|listsortreversed:1 %}{{i|safe}}{% endfor %}'''
+        >>> Template(t).render(Context(c))
+        "\nsorted : ('a', 3)('c', 2)('b', 1)"
+    """
+    return reversed(listsort(lst,col))
