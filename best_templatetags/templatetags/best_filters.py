@@ -131,9 +131,10 @@ def resub(str,arg):
         'hello eric'
 
         >>> c = {'mypath':'/home/theuser/projects'}
-        >>> t = r'{% load best_filters %}{{ mypath|resub:",/home/([^/]*)/projects,login=\1" }}'
+        >>> t = r'''{% load best_filters %}
+        ... {{ mypath|resub:",/home/([^/]*)/projects,login=\1" }}'''
         >>> Template(t).render(Context(c))
-        'login=theuser'
+        '\nlogin=theuser'
     """
     sep=arg[0]
     params = arg.split(sep)
@@ -144,20 +145,24 @@ def resub(str,arg):
     return regex.sub(rep,str)
 
 @register.filter
-def age(bday, d=None):
+def age(bday, ref_date=None):
     """give the age in year
+
+    Argument is optionnal. If not set, the refererence day is today
 
     Example:
 
-        >>> c = {'user_birthdate':datetime(2006,11,9)}
-        >>> t = '{% load best_filters %}{{ user_birthdate|age }} years old'
+        >>> c = {'user_birthdate':datetime(2006,11,9),
+        ...      'mytoday' : datetime(2018,1,21) }
+        >>> t = '{% load best_filters %}{{ user_birthdate|age:mytoday }} years old'
         >>> Template(t).render(Context(c))
         '11 years old'
 
     """
-    if d is None:
-        d = datetime.date.today()
-    return (d.year - bday.year) - int((d.month, d.day) < (bday.month, bday.day))
+    if ref_date is None:
+        ref_date = datetime.date.today()
+    return (ref_date.year - bday.year) - int(
+        (ref_date.month, ref_date.day) < (bday.month, bday.day))
 
 @stringfilter
 @register.filter
