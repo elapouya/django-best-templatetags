@@ -65,6 +65,8 @@ Tags
      :toctree: stubs
      :nosignatures:
 
+     extend_url
+     hash
      render_template
      update_url
 
