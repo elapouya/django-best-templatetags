@@ -8,24 +8,123 @@ from django.template import Template
 from urllib.parse import urlsplit, urlunsplit
 from django import template
 from django.http import QueryDict
+from django.utils.safestring import mark_safe
+import hashlib
 
 
 register = template.Library()
 
-@register.simple_tag
+@register.simple_tag()
 def update_url(url, **kwargs):
     """ Update url parameters
-    """
 
-    parsed = urlsplit(url)
-    querystring = QueryDict(parsed.query, mutable=True)
+    * Not existing parameters are added
+    * Existing parameters are replaced
+    * parameters with "__del__" value are deleted
+
+    Example:
+
+        >>> c = {'myurl':'http://a.com/b/c.html?d=1&e=2'}
+        >>> t = '{% load best_tags %}{% update_url myurl e=3 f=4 %}'
+        >>> Template(t).render(Context(c))
+        'http://a.com/b/c.html?d=1&e=3&f=4'
+
+        >>> c = {'myurl':'?d=1&e=2'}
+        >>> t = '{% load best_tags %}{% update_url myurl e=3 f=4 %}'
+        >>> Template(t).render(Context(c))
+        '?d=1&e=3&f=4'
+
+        >>> c = {'myurl':'http://a.com/b/c.html?d=1&e=2'}
+        >>> t = '{% load best_tags %}{% update_url myurl d="__del__" f=4 %}'
+        >>> Template(t).render(Context(c))
+        'http://a.com/b/c.html?e=2&f=4'
+
+    """
+    splitted_url = urlsplit(url)
+    querystring = QueryDict(splitted_url.query, mutable=True)
     # do not use update() QueryDict method here otherwise,
     # the dict will be extended
     # and the final url will grow and grow ....
-    for k,v in kwargs:
-        querystring[k] = v
-    return urlunsplit(parsed._replace(query=querystring.urlencode()))
+    for k,v in kwargs.items():
+        if v == '__del__' and k in querystring:
+            del querystring[k]
+        elif hasattr(v, '__iter__'):
+            querystring.setlist(k, v)
+        else:
+            querystring[k] = v
+    return mark_safe(
+            urlunsplit(splitted_url._replace(query=querystring.urlencode()))
+        )
 
+@register.simple_tag()
+def extend_url(url, **kwargs):
+    """ Update url parameters
+
+    * Not existing parameters are added
+    * Existing parameters are extended
+    * parameters with "__del__" value are deleted
+
+    Note:
+
+        It takes care to not have duplicate values for a same parameter.
+        The values taken from the tag parameters are converted to string.
+
+    Example:
+
+        >>> c = {'myurl':'http://a.com/b/c.html?d=1&e=2'}
+        >>> t = '{% load best_tags %}{% extend_url myurl d=1 e=3 f=4 %}'
+        >>> Template(t).render(Context(c))
+        'http://a.com/b/c.html?d=1&e=2&e=3&f=4'
+
+        >>> c = {'myurl':'?d=1&e=2'}
+        >>> t = '{% load best_tags %}{% extend_url myurl e=3 f=4 %}'
+        >>> Template(t).render(Context(c))
+        '?d=1&e=2&e=3&f=4'
+
+        >>> c = {'myurl':'http://a.com/b/c.html?d=1&e=2'}
+        >>> t = '{% load best_tags %}{% extend_url myurl d="__del__" e=3 %}'
+        >>> Template(t).render(Context(c))
+        'http://a.com/b/c.html?e=2&e=3'
+
+    """
+    splitted_url = urlsplit(url)
+    querystring = QueryDict(splitted_url.query, mutable=True)
+    for k, v in kwargs.items():
+        if v == '__del__' and k in querystring:
+            del querystring[k]
+        else:
+            param_set = set(querystring.getlist(k))
+            param_set.add(str(v))
+            querystring.setlist(k,list(param_set))
+    return mark_safe(
+            urlunsplit(splitted_url._replace(query=querystring.urlencode()))
+        )
+
+
+@register.simple_tag()
+def hash(algorithm, str):
+    """ Return a hexadecimal md5 digest of a string
+
+    First argument is a string giving the hash algorithm, for example:
+    "md5", "sha1" ...
+    Second argument is the string or variable to hash
+
+    Note:
+
+        string are encoded to utf-8 prior calculating the hash
+
+    Example:
+
+        >>> c = {'title':'My worderful document title'}
+        >>> t = '{% load best_tags %}{% hash "md5" title %}'
+        >>> Template(t).render(Context(c))
+        '3ddbd7936634a6a47f978376674dea31'
+    """
+    m = hashlib.new(algorithm)
+    if not isinstance(str,bytes):
+        str = str.encode('utf-8')
+    m.update(str)
+    return m.hexdigest()
 
 def render_template(value):
     # fake function for sphinx autodoc and doctest, do not remove
