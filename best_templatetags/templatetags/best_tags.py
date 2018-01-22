@@ -22,7 +22,7 @@ def update_url(url, **kwargs):
     * Existing parameters are replaced
     * parameters with "__del__" value are deleted
 
-    Example:
+    Examples:
 
         >>> c = {'myurl':'http://a.com/b/c.html?d=1&e=2'}
         >>> t = '{% load best_tags %}{% update_url myurl e=3 f=4 %}'
@@ -69,7 +69,7 @@ def extend_url(url, **kwargs):
         It takes care to not have duplicate values for a same parameter.
         The values taken from the tag parameters are converted to string.
 
-    Example:
+    Examples:
 
         >>> c = {'myurl':'http://a.com/b/c.html?d=1&e=2'}
         >>> t = '{% load best_tags %}{% extend_url myurl d=1 e=3 f=4 %}'
