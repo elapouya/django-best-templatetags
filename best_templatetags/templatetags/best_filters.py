@@ -175,7 +175,7 @@ def truncat(str, pattern):
     pattern is a regex expression string
     Do not forget to escape the dot (\.) if it the char you want to search
 
-    Example:
+    Examples:
 
         >>> c = {'str':'abc...xyz'}
         >>> t = '{% load best_filters %}{{ str|truncat:"\." }}'
@@ -323,7 +323,7 @@ def listsort(lst,col=None):
     If an argunment is given (int), the filter is expecting a
     list of lists/tuples and will sort following the column 'col' order
 
-    Example :
+    Examples :
 
         >>> c = { 'lst': ['a','c','b'] }
         >>> t = '''{% load best_filters %}
@@ -349,7 +349,7 @@ def listsortreversed(lst,col=None):
 
     Same as :func:`listsort` except that is reverse the order
 
-    Example :
+    Examples :
 
         >>> c = { 'lst': ['a','c','b'] }
         >>> t = '''{% load best_filters %}
