@@ -22,7 +22,7 @@ def update_url(url, **kwargs):
     # do not use update() QueryDict method here otherwise,
     # the dict will be extended
     # and the final url will grow and grow ....
-    for k,v in kwargs:
+    for k,v in kwargs.item():
         querystring[k] = v
     return urlunsplit(parsed._replace(query=querystring.urlencode()))
 
