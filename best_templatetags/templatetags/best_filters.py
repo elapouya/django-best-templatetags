@@ -21,6 +21,24 @@ from django.template import Variable, VariableDoesNotExist
 
 register = template.Library()
 
+
+@register.filter('type')
+def get_type(obj):
+    """get object class name
+
+    Useful for debugging
+
+    Example:
+
+        >>> c = {'myint':5, 'mystr':'hello'}
+        >>> t = '{% load best_filters %}{{ myint|type }} {{ mystr|type }}'
+        >>> Template(t).render(Context(c))
+        'int str'
+
+    """
+    return type(obj).__name__
+
+
 @register.filter
 @stringfilter
 def basename(str):

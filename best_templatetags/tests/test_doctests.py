@@ -22,4 +22,5 @@ def load_tests(*args, **kwargs):
             doctest.DocTestSuite(mod,globs=globals())
         )
     return test_all_doctests
+
 doctest.NORMALIZE_WHITESPACE
