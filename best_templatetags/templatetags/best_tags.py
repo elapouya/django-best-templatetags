@@ -15,12 +15,13 @@ import hashlib
 register = template.Library()
 
 @register.simple_tag()
-def update_url(url, **kwargs):
+def update_url(url, without=None, anchor_hash=None, **kwargs):
     """ Update url parameters
 
     * Not existing parameters are added
     * Existing parameters are replaced
-    * parameters with "__del__" value are deleted
+    * parameters specified in 'without' (coma separated string) value are deleted
+    * A replacement hash can be speficied in 'anchor_hash'
 
     Examples:
 
@@ -35,9 +36,14 @@ def update_url(url, **kwargs):
         '?d=1&e=3&f=4'
 
         >>> c = {'myurl':'http://a.com/b/c.html?d=1&e=2'}
-        >>> t = '{% load best_tags %}{% update_url myurl d="__del__" f=4 %}'
+        >>> t = '{% load best_tags %}{% update_url myurl without="d" f=4 %}'
         >>> Template(t).render(Context(c))
         'http://a.com/b/c.html?e=2&f=4'
+
+        >>> c = {'myurl':'http://a.com/b/c.html?d=1&e=2&f=3#chapter1'}
+        >>> t = '{% load best_tags %}{% update_url myurl without="d,e" anchor_hash="chapter2" f=4 %}'
+        >>> Template(t).render(Context(c))
+        'http://a.com/b/c.html?f=4#chapter2'
 
     """
     splitted_url = urlsplit(url)
@@ -46,23 +52,30 @@ def update_url(url, **kwargs):
     # the dict will be extended
     # and the final url will grow and grow ....
     for k,v in kwargs.items():
-        if v == '__del__' and k in querystring:
-            del querystring[k]
-        elif hasattr(v, '__iter__'):
-            querystring.setlist(k, v)
-        else:
-            querystring[k] = v
+        if not isinstance(v,str):
+            v = str(v)
+        querystring[k] = v
+    if without:
+        if isinstance(without, str):
+            without=without.split(',')
+        for k in without:
+            if k in querystring:
+                del querystring[k]
     return mark_safe(
-            urlunsplit(splitted_url._replace(query=querystring.urlencode()))
+            urlunsplit(splitted_url._replace(
+                query=querystring.urlencode(),
+                fragment=anchor_hash
+            ))
         )
 
 @register.simple_tag()
-def extend_url(url, **kwargs):
+def extend_url(url, without=None, anchor_hash=None, **kwargs):
     """ Update url parameters
 
     * Not existing parameters are added
     * Existing parameters are extended
-    * parameters with "__del__" value are deleted
+    * parameters specified in 'without' (coma separated string) value are deleted
+    * A replacement hash can be speficied in 'anchor_hash'
 
     Note:
 
@@ -82,22 +95,32 @@ def extend_url(url, **kwargs):
         '?d=1&e=2&e=3&f=4'
 
         >>> c = {'myurl':'http://a.com/b/c.html?d=1&e=2'}
-        >>> t = '{% load best_tags %}{% extend_url myurl d="__del__" e=3 %}'
+        >>> t = '{% load best_tags %}{% extend_url myurl without="d" e=3 %}'
         >>> Template(t).render(Context(c))
         'http://a.com/b/c.html?e=2&e=3'
 
+        >>> c = {'myurl':'http://a.com/b/c.html?d=1&e=2&f=3#chapter1'}
+        >>> t = '{% load best_tags %}{% extend_url myurl without="d,e" anchor_hash="chapter2" f=4 %}'
+        >>> Template(t).render(Context(c))
+        'http://a.com/b/c.html?f=3&f=4#chapter2'
     """
     splitted_url = urlsplit(url)
     querystring = QueryDict(splitted_url.query, mutable=True)
     for k, v in kwargs.items():
-        if v == '__del__' and k in querystring:
-            del querystring[k]
-        else:
-            param_set = set(querystring.getlist(k))
-            param_set.add(str(v))
-            querystring.setlist(k,list(param_set))
+        param_set = set(querystring.getlist(k))
+        param_set.add(str(v))
+        querystring.setlist(k,list(sorted(param_set))) # sort here otherwise doctests will fail
+    if without:
+        if isinstance(without, str):
+            without=without.split(',')
+        for k in without:
+            if k in querystring:
+                del querystring[k]
     return mark_safe(
-            urlunsplit(splitted_url._replace(query=querystring.urlencode()))
+            urlunsplit(splitted_url._replace(
+                query=querystring.urlencode(),
+                fragment=anchor_hash
+            ))
         )
 
 
