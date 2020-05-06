@@ -61,7 +61,7 @@ setup(name='django-best-templatetags',
       author_email='elapouya@gmail.com',
       license='LGPL 2.1',
       packages=find_packages(),
-      install_requires=['django>=1.8','beautifulsoup4','Sphinx', 'sphinxcontrib-napoleon'],
+      install_requires=['django>=1.8','beautifulsoup4'],
       extras_require={'docs': ['Sphinx', 'sphinxcontrib-napoleon']},
       eager_resources=['docs'],
       zip_safe=False)
